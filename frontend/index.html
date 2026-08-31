@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>转写助手</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🎙</span>
+    <span class="brand-name">转写助手</span>
+    <span class="brand-sub">视频 · 音频 → Word 三件套</span>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-view="tasks">任务</button>
+    <button class="tab" data-view="history">历史</button>
+    <button class="tab" data-view="settings">设置</button>
+  </nav>
+  <button class="theme-btn" id="themeBtn" title="切换深浅主题">🌙</button>
+</header>
+
+<main>
+  <!-- 任务页 -->
+  <section id="view-tasks" class="view active">
+    <div id="dropZone" class="drop-zone">
+      <div class="drop-icon">📥</div>
+      <div class="drop-title">把视频拖到这里, 或点击选择</div>
+      <div class="drop-hint">支持 mp4 / mkv / mov / mp3 等, 可一次选多个<br>
+      <span style="font-size:12px;color:var(--warn)">💡 大文件(500MB以上)建议点"选择视频", 添加更流畅</span></div>
+      <div class="drop-actions">
+        <button class="btn primary" id="pickBtn">选择视频</button>
+        <span class="or">或</span>
+        <button class="btn ghost" id="browseBtn">浏览选择</button>
+      </div>
+      <input type="file" id="fileInput" multiple hidden
+             accept=".mp4,.mkv,.mov,.avi,.flv,.webm,.wmv,.m4v,.mp3,.m4a,.aac,.wav,.flac,.ogg">
+      <div id="uploadBox" class="upload-box hidden">
+        <div class="upload-info"><span id="uploadName">正在添加...</span>
+          <button class="btn small danger" id="uploadCancel">✕ 取消</button></div>
+        <div class="progress"><div class="progress-bar" id="uploadBar" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div id="taskList" class="task-list"></div>
+  </section>
+
+  <!-- 历史页 -->
+  <section id="view-history" class="view">
+    <div class="section-head">
+      <h2>已完成的任务</h2>
+      <span class="muted" id="historyCount"></span>
+    </div>
+    <div id="historyList" class="task-list"></div>
+  </section>
+
+  <!-- 设置页 -->
+  <section id="view-settings" class="view">
+    <div class="settings-card">
+      <h2>API 设置 <span class="badge">用于 AI 校对与总结</span></h2>
+      <div class="form-row">
+        <label>提供商</label>
+        <select id="setProvider">
+          <option value="deepseek">DeepSeek</option>
+          <option value="openai">OpenAI</option>
+          <option value="custom">自定义</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>接口地址</label>
+        <input id="setBaseUrl" placeholder="https://api.deepseek.com/v1">
+      </div>
+      <div class="form-row">
+        <label>API Key</label>
+        <input id="setApiKey" type="password" placeholder="sk-...">
+      </div>
+      <div class="form-row">
+        <label>模型</label>
+        <input id="setModel" placeholder="deepseek-chat">
+      </div>
+
+      <h2>转写设置</h2>
+      <div class="form-row">
+        <label>模型档位</label>
+        <select id="setTier">
+          <option value="auto">自动推荐(按电脑性能)</option>
+          <option value="large-v3">large-v3 · 极致准确</option>
+          <option value="distil-large-v3">distil-large-v3 · 快且准</option>
+          <option value="medium">medium · 均衡</option>
+          <option value="small">small · 快速</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>语言</label>
+        <select id="setLang">
+          <option value="zh">中文</option>
+          <option value="auto">自动检测</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>热词表(人名/术语, 每行一个)</label>
+        <textarea id="setHotwords" rows="3"
+          placeholder="例:&#10;李华&#10;Transformer"></textarea>
+      </div>
+
+      <h2>说话人区分 <span class="badge">需 HuggingFace Token</span></h2>
+      <div class="form-row">
+        <label><input type="checkbox" id="setDiarize"> 启用说话人区分 (标出 [A] [B])</label>
+      </div>
+      <div class="form-row">
+        <label>HuggingFace Token</label>
+        <input id="setHfToken" type="password" placeholder="hf_...">
+      </div>
+      <div class="form-row">
+        <button class="btn primary" id="saveSettings">保存设置</button>
+        <span class="muted" id="settingsHint"></span>
+      </div>
+      <div class="hw-box" id="hwBox"></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<!-- 试听弹窗 -->
+<div id="playerModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span>存疑片段试听</span>
+      <button class="modal-close" id="playerClose">✕</button>
+    </div>
+    <div class="doubt-desc" id="doubtDesc"></div>
+    <audio id="player" controls></audio>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

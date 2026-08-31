@@ -1,0 +1,26 @@
+# 构建产物
+build/
+dist/
+release/
+*.spec
+
+# 运行时数据(含用户隐私与视频素材)
+01_视频/
+02_音频/
+03_转写/
+04_文档/
+data/
+
+# 配置文件含 API Key, 绝不入库
+config.json
+
+# 模型(体积大, 用 download_model.py 本地下载)
+models/
+
+# Python
+__pycache__/
+*.pyc
+
+# 系统
+Thumbs.db
+.DS_Store

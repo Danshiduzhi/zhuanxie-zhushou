@@ -1,0 +1,59 @@
+# 转写助手 自动构建: Windows + macOS (Intel & Apple Silicon)
+# 用法: 代码推送到 GitHub 后, 在 Actions 页点 "Run workflow" 手动触发,
+#       或推送时自动触发。构建产物在每次运行的 Artifacts 里下载。
+name: 构建发布包
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安装依赖
+        run: |
+          pip install flask pywebview python-docx faster-whisper pyinstaller ctranslate2 nvidia-cublas-cu12
+          choco install ffmpeg -y
+      - name: 打包
+        run: |
+          python -m PyInstaller --noconfirm --onedir --windowed --name "转写助手" --add-data "frontend;frontend" --collect-all ctranslate2 --collect-all nvidia.cublas --collect-data faster_whisper --hidden-import flask app.py
+          Copy-Item (Get-Command ffmpeg).Source "dist/转写助手/ffmpeg.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 转写助手-windows
+          path: dist/转写助手
+
+  build-macos:
+    strategy:
+      matrix:
+        include:
+          - os: macos-13
+            arch: x86_64
+            name: macos-intel
+          - os: macos-latest
+            arch: arm64
+            name: macos-apple-silicon
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安装依赖
+        run: pip install flask pywebview python-docx faster-whisper pyinstaller ctranslate2
+      - name: 安装 ffmpeg
+        run: brew install ffmpeg
+      - name: 打包
+        run: |
+          python -m PyInstaller --noconfirm --onedir --windowed --name "转写助手" --add-data "frontend:frontend" --collect-all ctranslate2 --collect-data faster_whisper --hidden-import flask app.py
+          cp "$(which ffmpeg)" "dist/转写助手/ffmpeg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 转写助手-${{ matrix.name }}
+          path: dist/转写助手
