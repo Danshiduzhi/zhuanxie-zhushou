@@ -24,3 +24,7 @@ __pycache__/
 # 系统
 Thumbs.db
 .DS_Store
+
+# 软著申请材料与隐私文档, 不公开
+软著材料/
+04_文档.zip
