@@ -1,133 +1,256 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="system">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>转写助手</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<!-- 图标库 -->
+<svg class="sprite" aria-hidden="true">
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3Z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5Z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 4h4M6 7l1 13h10l1-13M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.4-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 3a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.4l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 13 4 4L19 7"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="9"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.6-7-9.3A4 4 0 0 1 12 8a4 4 0 0 1 7 2.7C19 15.4 12 20 12 20Z"/></symbol>
+  <symbol id="i-coffee" viewBox="0 0 24 24"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Z"/><path d="M16 9h2a2.5 2.5 0 0 1 0 5h-2M5 21h11"/></symbol>
+</svg>
+
 <header class="topbar">
   <div class="brand">
-    <span class="logo">🎙</span>
-    <span class="brand-name">转写助手</span>
-    <span class="brand-sub">视频 · 音频 → Word 三件套</span>
+    <div class="logo"><svg><use href="#i-mic"/></svg></div>
+    <div class="brand-text">
+      <span class="brand-name">转写助手</span>
+      <span class="brand-sub">音视频 → 文字</span>
+    </div>
   </div>
-  <nav class="tabs">
-    <button class="tab active" data-view="tasks">任务</button>
-    <button class="tab" data-view="history">历史</button>
-    <button class="tab" data-view="settings">设置</button>
+
+  <nav class="segmented" role="tablist">
+    <button class="seg active" data-view="tasks" role="tab">任务</button>
+    <button class="seg" data-view="history" role="tab">历史</button>
+    <button class="seg" data-view="settings" role="tab">设置</button>
+    <button class="seg donate-seg" id="donateBtn" role="tab">
+      <svg><use href="#i-heart"/></svg><span>打赏</span>
+    </button>
   </nav>
-  <button class="theme-btn" id="themeBtn" title="切换深浅主题">🌙</button>
+
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" title="切换主题" aria-label="切换主题">
+      <svg><use href="#i-sun"/></svg>
+    </button>
+    <button class="icon-btn" id="logBtn" title="查看日志" aria-label="查看日志">
+      <svg><use href="#i-file"/></svg>
+    </button>
+  </div>
 </header>
 
 <main>
-  <!-- 任务页 -->
+  <!-- ============ 任务 ============ -->
   <section id="view-tasks" class="view active">
-    <div id="dropZone" class="drop-zone">
-      <div class="drop-icon">📥</div>
-      <div class="drop-title">把视频拖到这里, 或点击选择</div>
-      <div class="drop-hint">支持 mp4 / mkv / mov / mp3 等, 可一次选多个<br>
-      <span style="font-size:12px;color:var(--warn)">💡 大文件(500MB以上)建议点"选择视频", 添加更流畅</span></div>
-      <div class="drop-actions">
-        <button class="btn primary" id="pickBtn">选择视频</button>
-        <span class="or">或</span>
-        <button class="btn ghost" id="browseBtn">浏览选择</button>
+    <div id="dropZone" class="dropzone">
+      <div class="dropzone-inner">
+        <div class="drop-icon"><svg><use href="#i-upload"/></svg></div>
+        <h1 class="drop-title">把视频或录音拖到这里</h1>
+        <p class="drop-sub">支持 mp4、mov、mkv、mp3、wav 等常见格式，可一次添加多个</p>
+        <div class="drop-actions">
+          <button class="btn primary" id="pickBtn">
+            <svg><use href="#i-plus"/></svg><span>选择文件</span>
+          </button>
+        </div>
       </div>
       <input type="file" id="fileInput" multiple hidden
-             accept=".mp4,.mkv,.mov,.avi,.flv,.webm,.wmv,.m4v,.mp3,.m4a,.aac,.wav,.flac,.ogg">
+             accept=".mp4,.mkv,.mov,.avi,.flv,.webm,.wmv,.m4v,.ts,.mpg,.mpeg,.3gp,.mp3,.m4a,.aac,.wav,.flac,.ogg,.wma,.amr">
       <div id="uploadBox" class="upload-box hidden">
-        <div class="upload-info"><span id="uploadName">正在添加...</span>
-          <button class="btn small danger" id="uploadCancel">✕ 取消</button></div>
-        <div class="progress"><div class="progress-bar" id="uploadBar" style="width:0%"></div></div>
+        <div class="upload-info">
+          <span id="uploadName">正在添加…</span>
+          <button class="btn tiny" id="uploadCancel">取消</button>
+        </div>
+        <div class="bar"><div class="bar-fill" id="uploadBar" style="width:0%"></div></div>
       </div>
     </div>
-    <div id="taskList" class="task-list"></div>
+
+    <div class="section-head">
+      <h2>进行中</h2>
+      <span class="muted" id="activeCount"></span>
+    </div>
+    <div id="taskList" class="list"></div>
   </section>
 
-  <!-- 历史页 -->
+  <!-- ============ 历史 ============ -->
   <section id="view-history" class="view">
     <div class="section-head">
-      <h2>已完成的任务</h2>
-      <span class="muted" id="historyCount"></span>
+      <h2>已完成</h2>
+      <div class="head-actions">
+        <span class="muted" id="historyCount"></span>
+        <button class="btn ghost tiny" id="openDocsBtn">
+          <svg><use href="#i-folder"/></svg><span>输出文件夹</span>
+        </button>
+      </div>
     </div>
-    <div id="historyList" class="task-list"></div>
+    <div id="historyList" class="list"></div>
   </section>
 
-  <!-- 设置页 -->
+  <!-- ============ 设置 ============ -->
   <section id="view-settings" class="view">
-    <div class="settings-card">
-      <h2>API 设置 <span class="badge">用于 AI 校对与总结</span></h2>
-      <div class="form-row">
-        <label>提供商</label>
+    <div class="card">
+      <div class="card-head">
+        <h3>识别</h3>
+        <span class="hint">本地离线转写，不上传内容</span>
+      </div>
+      <div class="row">
+        <label for="setTier">模型档位</label>
+        <select id="setTier">
+          <option value="auto">自动（按电脑性能）</option>
+          <option value="large-v3">large-v3 · 最准</option>
+          <option value="distil-large-v3">distil-large-v3 · 准且快</option>
+          <option value="medium">medium · 均衡</option>
+          <option value="small">small · 快</option>
+          <option value="tiny">tiny · 极速</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="setLang">语言</label>
+        <select id="setLang">
+          <option value="zh">中文</option>
+          <option value="en">英文</option>
+          <option value="ja">日文</option>
+          <option value="ko">韩文</option>
+          <option value="auto">自动检测</option>
+        </select>
+      </div>
+      <div class="row column">
+        <label for="setHotwords">热词表</label>
+        <textarea id="setHotwords" rows="3" placeholder="人名、专业术语，每行一个&#10;例：李华&#10;Transformer"></textarea>
+      </div>
+      <div class="hw-box" id="hwBox"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>AI 增强</h3>
+        <span class="hint">需要配置 API Key，不配置也能正常转写</span>
+      </div>
+      <div class="row">
+        <label for="setProvider">服务商</label>
         <select id="setProvider">
           <option value="deepseek">DeepSeek</option>
           <option value="openai">OpenAI</option>
           <option value="custom">自定义</option>
         </select>
       </div>
-      <div class="form-row">
-        <label>接口地址</label>
+      <div class="row">
+        <label for="setBaseUrl">接口地址</label>
         <input id="setBaseUrl" placeholder="https://api.deepseek.com/v1">
       </div>
-      <div class="form-row">
-        <label>API Key</label>
-        <input id="setApiKey" type="password" placeholder="sk-...">
+      <div class="row">
+        <label for="setApiKey">API Key</label>
+        <input id="setApiKey" type="password" placeholder="sk-…" autocomplete="off">
       </div>
-      <div class="form-row">
-        <label>模型</label>
+      <div class="row">
+        <label for="setModel">模型</label>
         <input id="setModel" placeholder="deepseek-chat">
       </div>
+      <div class="row toggle-row">
+        <div>
+          <div class="toggle-title">智能校对</div>
+          <div class="toggle-desc">修正同音错字、补标点、统一术语</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="setProofread"><span></span></label>
+      </div>
+      <div class="row toggle-row">
+        <div>
+          <div class="toggle-title">生成总结</div>
+          <div class="toggle-desc">摘要、要点、详解、行动项</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="setSummary"><span></span></label>
+      </div>
+    </div>
 
-      <h2>转写设置</h2>
-      <div class="form-row">
-        <label>模型档位</label>
-        <select id="setTier">
-          <option value="auto">自动推荐(按电脑性能)</option>
-          <option value="large-v3">large-v3 · 极致准确</option>
-          <option value="distil-large-v3">distil-large-v3 · 快且准</option>
-          <option value="medium">medium · 均衡</option>
-          <option value="small">small · 快速</option>
-        </select>
+    <div class="card">
+      <div class="card-head"><h3>输出</h3></div>
+      <div class="row toggle-row">
+        <div>
+          <div class="toggle-title">保留源视频与录音</div>
+          <div class="toggle-desc">关闭后转写完成即删除源文件，只保留文档与字幕</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="setKeepSource"><span></span></label>
       </div>
-      <div class="form-row">
-        <label>语言</label>
-        <select id="setLang">
-          <option value="zh">中文</option>
-          <option value="auto">自动检测</option>
-        </select>
+      <div class="row">
+        <label>工作目录</label>
+        <input id="setWorkRoot" placeholder="默认：用户数据目录">
       </div>
-      <div class="form-row">
-        <label>热词表(人名/术语, 每行一个)</label>
-        <textarea id="setHotwords" rows="3"
-          placeholder="例:&#10;李华&#10;Transformer"></textarea>
+      <div class="row">
+        <label>当前目录</label>
+        <div class="path-line">
+          <code id="rootPath">—</code>
+          <button class="btn ghost tiny" id="openRootBtn"><svg><use href="#i-folder"/></svg><span>打开</span></button>
+        </div>
       </div>
+    </div>
 
-      <h2>说话人区分 <span class="badge">需 HuggingFace Token</span></h2>
-      <div class="form-row">
-        <label><input type="checkbox" id="setDiarize"> 启用说话人区分 (标出 [A] [B])</label>
-      </div>
-      <div class="form-row">
-        <label>HuggingFace Token</label>
-        <input id="setHfToken" type="password" placeholder="hf_...">
-      </div>
-      <div class="form-row">
-        <button class="btn primary" id="saveSettings">保存设置</button>
-        <span class="muted" id="settingsHint"></span>
-      </div>
-      <div class="hw-box" id="hwBox"></div>
+    <div class="settings-actions">
+      <button class="btn primary" id="saveSettings">保存设置</button>
+      <span class="muted" id="settingsHint"></span>
     </div>
   </section>
 </main>
 
 <div id="toast" class="toast"></div>
 
-<!-- 试听弹窗 -->
+<!-- 打赏 -->
+<div id="donateModal" class="modal hidden">
+  <div class="modal-box donate-box">
+    <div class="modal-head">
+      <span>支持一下</span>
+      <button class="icon-btn" id="donateClose"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="donate-body">
+      <div class="donate-icon"><svg><use href="#i-coffee"/></svg></div>
+      <p class="donate-title">如果它帮你省下了时间</p>
+      <p class="donate-sub">转写助手一直免费、离线运行。一杯咖啡，就是对这个项目的支持。</p>
+      <div class="qr-wrap">
+        <img id="donateQr" alt="收款码" src="/donate.png"
+             onerror="this.style.display='none';document.getElementById('qrHint').style.display='block'">
+        <div id="qrHint" class="qr-hint" style="display:none">
+          收款码待放入<br><code>frontend/donate.png</code>
+        </div>
+      </div>
+      <p class="donate-foot">感谢你的支持 ♥</p>
+    </div>
+  </div>
+</div>
+
+<!-- 日志 -->
+<div id="logModal" class="modal hidden">
+  <div class="modal-box wide">
+    <div class="modal-head">
+      <span>运行日志</span>
+      <button class="icon-btn" id="logClose"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <pre class="log-pre" id="logText">加载中…</pre>
+  </div>
+</div>
+
+<!-- 试听 -->
 <div id="playerModal" class="modal hidden">
   <div class="modal-box">
     <div class="modal-head">
       <span>存疑片段试听</span>
-      <button class="modal-close" id="playerClose">✕</button>
+      <button class="icon-btn" id="playerClose"><svg><use href="#i-x"/></svg></button>
     </div>
     <div class="doubt-desc" id="doubtDesc"></div>
     <audio id="player" controls></audio>

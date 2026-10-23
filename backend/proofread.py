@@ -2,7 +2,11 @@
 """AI 校对与总结 (OpenAI 兼容 API, 默认 DeepSeek)"""
 import json
 import os
+import time
+import urllib.error
 import urllib.request
+
+from . import applog
 
 PROOFREAD_SYSTEM = """你是专业的文字校对员。用户给你一份带时间戳的视频转录稿, 每行格式为 [MM:SS] 文本。
 请只做以下工作:
@@ -31,12 +35,40 @@ SUMMARY_SYSTEM = """你是专业的内容提炼助手。用户会给你一份带
 
 要求: 只基于转录稿内容, 不添加外部信息; 保留关键数字、人名、结论; 存疑问题必须来自转录中确实存在的疑问点。"""
 
+MAP_SYSTEM = """你是内容提炼助手。用户给你一份长转录稿的一部分(第 N 段, 共 M 段), 请提炼这段的内容要点:
+- 按主题列出关键信息, 保留所有数字、人名、结论、待办事项
+- 每行一条, 简洁, 不要省略具体数据
+- 只基于原文, 不推测"""
+    
+REDUCE_SYSTEM = """你是内容提炼助手。用户给你一份长转录稿各分段提炼出的要点, 请把它们合并成一份完整的总结, 结构固定:
+
+# 标题(一行概括主题)
+## 一句话摘要
+## 核心要点
+- 不超过 10 条, 按重要性排序
+## 内容详解
+### 主题名称
+- 关键信息与数字
+## 行动项
+- 没有则写"无"
+## 存疑问题
+- 没有则写"无"
+
+要求: 合并去重, 保留全部关键数字与人名, 不添加原文没有的信息。"""
+
 DEFAULT_BASE = "https://api.deepseek.com/v1"
 DEFAULT_MODEL = "deepseek-chat"
+SUMMARY_CHUNK_CHARS = 8000    # 超过此长度才启用分段总结
+MAX_PROOF_CHUNK = 4000
 
 
-def call_llm(system: str, user: str, settings: dict, max_tokens: int = 4000) -> str:
-    """调用 OpenAI 兼容接口; 失败抛异常"""
+class Canceled(Exception):
+    """外部取消"""
+
+
+def call_llm(system: str, user: str, settings: dict, max_tokens: int = 4000,
+             retries: int = 2, should_cancel=None) -> str:
+    """调用 OpenAI 兼容接口; 网络/限流错误自动重试, 其余异常直接抛"""
     api = settings.get("api", {})
     key = (api.get("api_key") or os.environ.get("DEEPSEEK_API_KEY") or "").strip()
     if not key:
@@ -51,43 +83,69 @@ def call_llm(system: str, user: str, settings: dict, max_tokens: int = 4000) -> 
     }).encode("utf-8")
     req = urllib.request.Request(
         base + "/chat/completions", data=payload,
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
-    with urllib.request.urlopen(req, timeout=600) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-    return data["choices"][0]["message"]["content"].strip()
+        headers={"Content-Type": "application/json",
+                 "Authorization": f"Bearer {key}"})
+    last_err = None
+    for attempt in range(retries + 1):
+        if should_cancel and should_cancel():
+            raise Canceled()
+        try:
+            with urllib.request.urlopen(req, timeout=600) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            return data["choices"][0]["message"]["content"].strip()
+        except urllib.error.HTTPError as e:
+            last_err = e
+            body = ""
+            try:
+                body = e.read().decode("utf-8", "replace")[:200]
+            except Exception:
+                pass
+            # 4xx(除 429) 是配置/额度问题, 重试无意义
+            if 400 <= e.code < 500 and e.code != 429:
+                raise RuntimeError(f"API 返回 {e.code}: {body}") from e
+            applog.get().warning("LLM 调用失败(%s), 第 %d 次重试", e.code, attempt + 1)
+        except (urllib.error.URLError, TimeoutError, OSError) as e:
+            last_err = e
+            applog.get().warning("LLM 网络异常: %s, 第 %d 次重试", str(e)[:80], attempt + 1)
+        if attempt < retries:
+            time.sleep(2 * (attempt + 1))
+    raise RuntimeError(f"API 调用失败: {str(last_err)[:150]}")
 
 
 def transcript_text(segments: list, total: float) -> str:
-    """分段 -> 带时间戳文本"""
     from .naming import ts
     lines = []
     for s in segments:
         t = ts(s["start"], total)
-        tag = f" [{s['speaker']}]" if s.get("speaker") else ""
         mark = " [存疑]" if s.get("doubt") else ""
-        lines.append(f"[{t}]{tag} {s['text']}{mark}")
+        lines.append(f"[{t}] {s['text']}{mark}")
     return "\n".join(lines)
 
 
 def proofread(segments: list, total: float, settings: dict, hotwords: str,
-              chunk_chars: int = 4000):
+              chunk_chars: int = MAX_PROOF_CHUNK, should_cancel=None):
     """AI 校对(分块, 避开单次输出上限): 返回 (修正后全文, 新增存疑清单)"""
     chunks = _split_chunks(segments, chunk_chars)
     extra = f"\n术语表: {hotwords.strip()}" if hotwords.strip() else ""
     parts, doubts = [], []
     for i, chunk in enumerate(chunks):
+        if should_cancel and should_cancel():
+            raise Canceled()
         src = transcript_text(chunk, total)
         try:
-            out = call_llm(PROOFREAD_SYSTEM, f"请校对以下转录稿(第{i+1}/{len(chunks)}部分):{extra}\n\n{src}",
-                           settings, max_tokens=8000)
-        except Exception:
+            out = call_llm(PROOFREAD_SYSTEM,
+                           f"请校对以下转录稿(第{i+1}/{len(chunks)}部分):{extra}\n\n{src}",
+                           settings, max_tokens=8000, should_cancel=should_cancel)
+        except Canceled:
+            raise
+        except Exception as e:
+            applog.get().warning("第 %d 块校对失败: %s", i + 1, e)
             parts.append(src)  # 该块校对失败: 退回原文, 不中断
             continue
         body, d = _parse_corrected(out)
         parts.append(body)
         doubts += d
     corrected = "\n".join(parts)
-    # 按时间戳与原文对齐: 校对稿缺的行用原文补回, 保证一行不丢
     return merge_corrected(segments, total, corrected), doubts
 
 
@@ -108,9 +166,8 @@ def merge_corrected(segments: list, total: float, corrected_text: str) -> str:
         q = by_ts.get(t)
         line = q.popleft() if q else None
         if line is None:
-            tag = f" [{seg['speaker']}]" if seg.get("speaker") else ""
             mark = " [存疑]" if seg.get("doubt") else ""
-            line = f"[{t}]{tag} {seg['text']}{mark}"
+            line = f"[{t}] {seg['text']}{mark}"
         merged.append(line)
     return "\n".join(merged)
 
@@ -119,7 +176,7 @@ def _split_chunks(segments: list, chunk_chars: int) -> list:
     """按字符预算切块, 避免单次 LLM 输出超限被截断"""
     chunks, cur, cur_len = [], [], 0
     for seg in segments:
-        ln = len(seg["text"]) + 12  # 时间戳等开销
+        ln = len(seg["text"]) + 12
         if cur and cur_len + ln > chunk_chars:
             chunks.append(cur)
             cur, cur_len = [], 0
@@ -148,6 +205,37 @@ def _parse_corrected(out: str) -> tuple[str, list]:
     return "\n".join(body).strip(), doubts
 
 
-def summarize(text: str, settings: dict) -> str:
-    return call_llm(SUMMARY_SYSTEM, f"请总结以下转录稿:\n\n{text}",
-                    settings, max_tokens=3000)
+def _split_by_chars(text: str, size: int) -> list:
+    """按行切分长文本, 尽量在换行处断开"""
+    lines = text.splitlines()
+    chunks, cur, cur_len = [], [], 0
+    for line in lines:
+        ln = len(line) + 1
+        if cur and cur_len + ln > size:
+            chunks.append("\n".join(cur))
+            cur, cur_len = [], 0
+        cur.append(line)
+        cur_len += ln
+    if cur:
+        chunks.append("\n".join(cur))
+    return chunks
+
+
+def summarize(text: str, settings: dict, should_cancel=None) -> str:
+    """总结: 短稿直出, 长稿先分段提炼再合并(避免超出上下文)"""
+    if len(text) <= SUMMARY_CHUNK_CHARS:
+        return call_llm(SUMMARY_SYSTEM, f"请总结以下转录稿:\n\n{text}",
+                        settings, max_tokens=3000, should_cancel=should_cancel)
+    parts = _split_by_chars(text, SUMMARY_CHUNK_CHARS)
+    notes = []
+    for i, part in enumerate(parts):
+        if should_cancel and should_cancel():
+            raise Canceled()
+        out = call_llm(
+            MAP_SYSTEM,
+            f"这是第 {i + 1}/{len(parts)} 段:\n\n{part}",
+            settings, max_tokens=1500, should_cancel=should_cancel)
+        notes.append(f"【第{i + 1}段】\n{out}")
+    applog.get().info("长文总结: %d 段合并", len(parts))
+    return call_llm(REDUCE_SYSTEM, "\n\n".join(notes),
+                    settings, max_tokens=3000, should_cancel=should_cancel)

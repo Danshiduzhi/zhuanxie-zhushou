@@ -1,0 +1,34 @@
+# 把手机端 PWA 发布到 GitHub Pages
+# 一次性设置: 仓库 Settings → Pages → Source 选 "GitHub Actions"
+# 之后每次改 mobile/ 下的文件并推送到 main, 会自动更新线上版本
+name: 发布手机端
+
+on:
+  push:
+    branches: [main]
+    paths: ["mobile/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: mobile
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -32,18 +32,25 @@ def main():
         print(f"已生成 -> {out}")
         return 0
 
+    from backend import applog, config, paths
     from backend.tasks import Worker
-    worker = Worker(BASE)
+    root = paths.data_dir()
+    dirs = paths.ensure(root)
+    applog.setup(Path(dirs["log_file"]))
+    cfg = config.load(Path(dirs["config"]), paths.app_dir() / "config.json")
+    worker = Worker(dirs, cfg,
+                    on_settings_saved=lambda c: config.save(Path(dirs["config"]), c))
     s = worker.settings
     if args.model:
         s["transcribe"]["tier"] = args.model
         worker.save_settings(s)
-    videos = sorted(p for p in (BASE / "01_视频").iterdir()
+    video_dir = Path(dirs["video"])
+    videos = sorted(p for p in video_dir.iterdir()
                     if p.suffix.lower() in {".mp4", ".mkv", ".mov", ".avi", ".flv",
                                             ".webm", ".wmv", ".m4v", ".mp3", ".m4a",
                                             ".aac", ".wav", ".flac", ".ogg"})
     if not videos:
-        print("01_视频/ 中没有视频")
+        print(f"{video_dir} 中没有视频")
         return 1
     added = worker.add_paths([str(v) for v in videos])
     new_ids = {t["id"] for t in added}

@@ -160,7 +160,6 @@ def build_record_docx(stem: str, meta: dict, transcript_text: str | None,
         ("录制时间", meta.get("mtime", "-")),
         ("时长", format_duration(meta.get("duration", 0))),
         ("转写模型", meta.get("model", "-")),
-        ("说话人数", str(meta.get("speakers", 0)) if meta.get("speakers") else "未启用"),
         ("存疑处数", str(len(doubts))),
     ])
     doc.add_heading("正文转录", 1)
@@ -170,14 +169,11 @@ def build_record_docx(stem: str, meta: dict, transcript_text: str | None,
             if not line:
                 continue
             p = doc.add_paragraph()
-            m = re.match(r"^\[([\d:]+)\](\s*\[[A-Z0-9]+\])?\s?(.*)$", line)
+            m = re.match(r"^\[([\d:]+)\]\s?(.*)$", line)
             if m:
                 set_font(p.add_run(f"[{m.group(1)}]"), size=Pt(11),
                          color=RGBColor(0x88, 0x88, 0x88))
-                if m.group(2):
-                    set_font(p.add_run(m.group(2)), size=Pt(11),
-                             bold=True, color=RGBColor(0x1F, 0x6F, 0xB2))
-                set_font(p.add_run(" " + m.group(3)), size=Pt(11))
+                set_font(p.add_run(" " + m.group(2)), size=Pt(11))
             else:
                 set_font(p.add_run(line), size=Pt(11))
     else:
@@ -196,8 +192,8 @@ def build_record_docx(stem: str, meta: dict, transcript_text: str | None,
         set_font(doc.add_paragraph().add_run("本段无存疑片段。"), size=Pt(11))
     doc.add_heading("备注", 1)
     set_font(doc.add_paragraph().add_run(
-        "标记说明: [存疑] 表示置信度低或语义不明; [A]/[B] 为说话人标签; "
-        "[MM:SS]/[HH:MM:SS] 为时间戳, 可在音频/视频中定位。"), size=Pt(10.5))
+        "标记说明: [存疑] 表示识别置信度低或语义不明; "
+        "[MM:SS]/[HH:MM:SS] 为时间戳, 可在音频中定位。"), size=Pt(10.5))
     doc.save(str(out_path))
     return out_path
 
@@ -209,8 +205,7 @@ def build_srt(segments: list, total: float, out_path: Path):
         st, en = s["start"], s["end"]
         hh1, mm1, ss1 = int(st // 3600), int(st % 3600 // 60), st % 60
         hh2, mm2, ss2 = int(en // 3600), int(en % 3600 // 60), en % 60
-        tag = f"[{s['speaker']}] " if s.get("speaker") else ""
         lines.append(f"{i}\n{hh1:02d}:{mm1:02d}:{ss1:06.3f} --> "
-                     f"{hh2:02d}:{mm2:02d}:{ss2:06.3f}\n{tag}{s['text']}\n")
+                     f"{hh2:02d}:{mm2:02d}:{ss2:06.3f}\n{s['text']}\n")
     out_path.write_text("\n".join(lines), encoding="utf-8")
     return out_path
