@@ -311,14 +311,20 @@ $("copyBtn").addEventListener("click", async () => {
 
 function saveFile() {
   const base = (lastResult.name || "转写结果").replace(/\.[^.]+$/, "");
+  const fileName = `${base}_文字记录.txt`;
+  // Android 原生壳: WebView 不支持 <a download>, 交给原生写文件
+  if (window.ZXAndroid && typeof window.ZXAndroid.saveText === "function") {
+    const ok = window.ZXAndroid.saveText(fileName, lastResult.text);
+    if (ok) return;
+  }
   const blob = new Blob([lastResult.text], { type: "text/plain;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `${base}_文字记录.txt`;
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  toast("已保存到“下载/文件”");
+  toast("已保存到「下载/文件」");
 }
 $("saveBtn").addEventListener("click", saveFile);
 

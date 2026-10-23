@@ -36,3 +36,8 @@ Thumbs.db
 
 # 与本项目无关的本地资料
 竞选材料_*/
+
+# 安卓构建产物与签名
+android/build/
+android/debug.keystore
+*.apk
