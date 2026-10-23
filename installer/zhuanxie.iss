@@ -3,10 +3,12 @@
 ;
 ; 是否把离线模型打进安装包:
 ;   ISCC.exe installer\zhuanxie.iss                 -> 完整版(含模型, 约 3.3 GB)
-;   ISCC.exe /DIncludeModels=0 installer\zhuanxie.iss -> 精简版(约 1.1 GB, 首次转写时联网下载模型)
+;   ISCC.exe installer\zhuanxie_slim.iss    -> 精简版(约 1.1 GB, 首次转写时联网下载模型)
 
-#ifndef IncludeModels
-  #define IncludeModels 1
+; 1 = 打包离线模型(完整版)  0 = 不打包(精简版)
+; 精简版请用 installer\zhuanxie_slim.iss, ISCC 的 /D 传进来是字符串, 无法直接当整数用
+#ifndef WithModels
+  #define WithModels 1
 #endif
 
 #define MyAppName "转写助手"
@@ -16,7 +18,7 @@
 #define AppId "{{5F3B9C21-7E4A-4C8B-9D16-2A8E6F0B7C34}"
 #define DistDir "..\dist\转写助手"
 
-#if IncludeModels
+#if WithModels
   #define SetupSuffix ""
 #else
   #define SetupSuffix "_精简版"
@@ -53,7 +55,7 @@ Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: 
 
 [Components]
 Name: "core"; Description: "转写助手主程序"; Types: full compact custom; Flags: fixed
-#if IncludeModels
+#if WithModels
 Name: "models"; Description: "离线识别模型 large-v3（约 2.9 GB，装完即可断网使用；不装则首次转写时联网下载）"; Types: full
 #endif
 
@@ -61,7 +63,7 @@ Name: "models"; Description: "离线识别模型 large-v3（约 2.9 GB，装完�
 ; 主程序 + 依赖 + 前端 + ffmpeg
 Source: "{#DistDir}\*"; DestDir: "{app}"; Excludes: "models\*, *.pyc, __pycache__, 01_视频\*, 02_音频\*, 03_转写\*, 04_文档\*, data\*, logs\*, config.json, app.url, portable.flag"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: core
 ; 识别模型(可选组件)
-#if IncludeModels
+#if WithModels
 Source: "{#DistDir}\models\*"; DestDir: "{app}\models"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist; Components: models
 #endif
 

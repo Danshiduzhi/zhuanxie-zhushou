@@ -50,7 +50,7 @@ jobs:
         run: |
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe" }
-          & $iscc "/DIncludeModels=0" "installer\zhuanxie.iss"
+          & $iscc "installer\zhuanxie_slim.iss"
 
       - name: 上传到 Release
         uses: softprops/action-gh-release@v2
@@ -59,7 +59,7 @@ jobs:
           body: |
             ## 转写助手 ${{ github.ref_name }}
 
-            - 下载 `转写助手_Setup_*_精简版.exe` 安装即可使用
+            - 下载 `转写助手_Setup_2.0_精简版.exe`（679 MB）安装即可使用
             - 首次转写会自动下载识别模型（约 2.9 GB，走 hf-mirror 国内镜像）
             - 手机端：`转写助手_Android_v2.0.apk`
 
