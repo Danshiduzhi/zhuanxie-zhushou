@@ -74,6 +74,8 @@ def main():
     ap.add_argument("--port", type=int, default=0)
     ap.add_argument("--data-dir", default="")
     ap.add_argument("--portable", action="store_true", help="绿色模式: 数据放程序目录")
+    ap.add_argument("--view", default="", choices=["", "tasks", "history", "settings"],
+                    help="启动时直接打开指定页面")
     args = ap.parse_args()
 
     if args.portable:
@@ -200,7 +202,8 @@ def main():
 
     try:
         webview.create_window(
-            "转写助手", url, js_api=Api(), width=1160, height=800,
+            "转写助手", url + (f"#{args.view}" if args.view else ""),
+            js_api=Api(), width=1160, height=800,
             min_size=(940, 620), text_select=True,
             background_color="#f5f5f7")
         webview.start()

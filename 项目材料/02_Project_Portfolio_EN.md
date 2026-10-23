@@ -24,6 +24,12 @@ Three product principles, in priority order: **accuracy > ease of use > cost**.
 
 ## What I Built
 
+![Main window](截图/01_任务页.png)
+
+The main window in dark mode: brand area and four tabs (Tasks / History / Settings / Support),
+a drag-and-drop zone, and the task queue below. The entire UI is hand-written HTML/CSS with no
+frontend framework, and supports light, dark, and system-follow themes.
+
 ### Desktop application (Windows)
 
 Drop in a video, get back a ready-to-deliver document set.

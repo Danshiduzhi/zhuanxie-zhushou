@@ -55,19 +55,37 @@ function toast(msg) {
 }
 
 /* ---------- 视图切换 ---------- */
-document.querySelectorAll(".seg").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".seg").forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
-    currentView = btn.dataset.view;
-    $("view-" + currentView).classList.add("active");
-    if (currentView === "settings") {
-      fillSettings();
-      lastSettingsSig = JSON.stringify(state.settings);
-    }
-  });
+function activateView(name) {
+  if (!["tasks", "history", "settings"].includes(name)) return;
+  document.querySelectorAll(".seg").forEach((b) =>
+    b.classList.toggle("active", b.dataset.view === name));
+  document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
+  currentView = name;
+  $("view-" + name).classList.add("active");
+  if (name === "settings") {
+    fillSettings();
+    lastSettingsSig = JSON.stringify(state.settings);
+  }
+}
+
+document.querySelectorAll(".seg[data-view]").forEach((btn) => {
+  btn.addEventListener("click", () => activateView(btn.dataset.view));
 });
+
+// 支持 #settings / #history 深链（刷新后停留在同一页）
+window.addEventListener("hashchange", () => {
+  const h = location.hash.replace("#", "");
+  if (h) activateView(h);
+});
+if (location.hash) {
+  const h = location.hash.replace("#", "");
+  if (["tasks", "history", "settings"].includes(h)) {
+    setTimeout(() => activateView(h), 60);
+  }
+}
+if (new URLSearchParams(location.search).get("view") === "donate") {
+  setTimeout(() => $("donateModal").classList.remove("hidden"), 200);
+}
 
 /* ---------- 添加文件 ---------- */
 const uploadQueue = [];
