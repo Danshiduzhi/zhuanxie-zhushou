@@ -1,5 +1,13 @@
 ; 转写助手 Windows 安装包脚本 (Inno Setup 7)
 ; 编译: tools\build_installer.bat  或  ISCC.exe installer\zhuanxie.iss
+;
+; 是否把离线模型打进安装包:
+;   ISCC.exe installer\zhuanxie.iss                 -> 完整版(含模型, 约 3.3 GB)
+;   ISCC.exe /DIncludeModels=0 installer\zhuanxie.iss -> 精简版(约 1.1 GB, 首次转写时联网下载模型)
+
+#ifndef IncludeModels
+  #define IncludeModels 1
+#endif
 
 #define MyAppName "转写助手"
 #define MyAppVersion "2.0"
@@ -7,6 +15,12 @@
 #define MyAppExeName "转写助手.exe"
 #define AppId "{{5F3B9C21-7E4A-4C8B-9D16-2A8E6F0B7C34}"
 #define DistDir "..\dist\转写助手"
+
+#if IncludeModels
+  #define SetupSuffix ""
+#else
+  #define SetupSuffix "_精简版"
+#endif
 
 [Setup]
 AppId={#AppId}
@@ -20,7 +34,7 @@ DisableProgramGroupPage=yes
 ; 装到用户目录, 不需要管理员权限
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=转写助手_Setup_{#MyAppVersion}
+OutputBaseFilename=转写助手_Setup_{#MyAppVersion}{#SetupSuffix}
 Compression=lzma2/fast
 SolidCompression=yes
 WizardStyle=modern
@@ -39,13 +53,17 @@ Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: 
 
 [Components]
 Name: "core"; Description: "转写助手主程序"; Types: full compact custom; Flags: fixed
+#if IncludeModels
 Name: "models"; Description: "离线识别模型 large-v3（约 2.9 GB，装完即可断网使用；不装则首次转写时联网下载）"; Types: full
+#endif
 
 [Files]
 ; 主程序 + 依赖 + 前端 + ffmpeg
 Source: "{#DistDir}\*"; DestDir: "{app}"; Excludes: "models\*, *.pyc, __pycache__, 01_视频\*, 02_音频\*, 03_转写\*, 04_文档\*, data\*, logs\*, config.json, app.url, portable.flag"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: core
 ; 识别模型(可选组件)
+#if IncludeModels
 Source: "{#DistDir}\models\*"; DestDir: "{app}\models"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist; Components: models
+#endif
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

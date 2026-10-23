@@ -1,0 +1,72 @@
+# 打 tag 时自动构建 Windows 安装包并挂到 Release
+#
+# 用法:
+#   git tag v2.0 && git push origin v2.0
+#
+# 产物: 转写助手_Setup_<tag>_精简版.exe（不含 2.9 GB 离线模型, 首次转写时联网下载）
+# 完整离线版（含模型, 约 3.3 GB）超过 GitHub 单文件 2 GB 限制, 只能本地构建后走网盘分发。
+
+name: 发布 Windows 安装包
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install flask pywebview python-docx faster-whisper psutil ^
+                      pyinstaller ctranslate2 nvidia-cublas-cu12
+
+      - name: 安装 ffmpeg 与 Inno Setup
+        run: |
+          choco install ffmpeg innosetup -y --no-progress
+
+      - name: 打包主程序
+        run: python -m PyInstaller --noconfirm 转写助手.spec
+
+      - name: 放入 ffmpeg
+        shell: pwsh
+        run: |
+          $ff = (Get-Command ffmpeg).Source
+          Copy-Item $ff "dist\转写助手\ffmpeg.exe"
+
+      - name: 生成安装包（精简版）
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe" }
+          & $iscc "/DIncludeModels=0" "installer\zhuanxie.iss"
+
+      - name: 上传到 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 转写助手 ${{ github.ref_name }}
+          body: |
+            ## 转写助手 ${{ github.ref_name }}
+
+            - 下载 `转写助手_Setup_*_精简版.exe` 安装即可使用
+            - 首次转写会自动下载识别模型（约 2.9 GB，走 hf-mirror 国内镜像）
+            - 手机端：`转写助手_Android_v2.0.apk`
+
+            > 含离线模型的完整版约 3.3 GB，超过 GitHub 2 GB 单文件限制，需本地构建。
+          files: |
+            dist/转写助手_Setup_*_精简版.exe
+            dist/*.apk
+          fail_on_unmatched_files: false
+          draft: false
+          prerelease: false
