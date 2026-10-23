@@ -4,7 +4,7 @@
 **Timeline:** August – October 2026 (~2 months, part-time)
 **Stack:** Python 3.12, Flask, faster-whisper / CTranslate2, python-docx, ffmpeg, PyInstaller, Inno Setup, vanilla JavaScript, PWA
 **Codebase:** 4,261 lines across 19 files
-**Status:** Windows installer released; mobile PWA live; software copyright filed in China
+**Status:** Windows installer built; mobile PWA ready to deploy; software copyright filed in China
 
 ---
 
