@@ -1,6 +1,6 @@
 # Transcription Assistant — Independent Software Project
 
-**Role:** Solo developer — product definition, full implementation, testing, release
+**Role:** Solo developer — product definition, full implementation, testing, release (no team, no advisor)
 **Timeline:** August – October 2026 (~2 months, part-time)
 **Stack:** Python 3.12, Flask, faster-whisper / CTranslate2, python-docx, ffmpeg, PyInstaller, Inno Setup, vanilla JavaScript, PWA
 **Codebase:** 4,261 lines across 19 files
@@ -8,9 +8,33 @@
 
 ---
 
+## About the Author
+
+I am David (旦史独支), a student from China. I build things from scratch — buying parts, assembling machines, tuning parameters, and writing the tools that turn an idea into something that actually runs.
+
+**Self-taught.** I learned Python and C on my own. I have never taken a programming course; I picked both up from documentation, error messages, and repeated debugging. Most of this project's backend, build scripts, and front-end interaction were figured out by reading official docs until the pieces fit.
+
+**Other things I have built:**
+
+| Work | Detail |
+|---|---|
+| Open-source 3D printer | Bought the parts, wired the control board, configured Marlin firmware, tuned the printhead |
+| Guided fin for a recoverable rocket | Utility model patent (pending) |
+| Internship, Jihua Laboratory (Foshan) | Advanced manufacturing |
+| TIM scale display model | Independently modeled and printed, delivered to a client for display at OCP in the US |
+| Competitions | National AILD Super Engineer Competition (3rd prize); Yunnan AILD Mechanical Design (bronze); Lijiang "Technology Changes Life" Invention (2nd prize); Lijiang Lunar Rover Design (1st prize); Lijiang No.1 High School Science & Innovation (top prize) |
+
+**Working habit:** estimate → build → test → document → iterate.
+
+---
+
 ## The Problem
 
-I work with a lot of recorded material — online lectures, interviews, meeting recordings. Every existing option had a problem:
+I did not build this to practice. **The people around me were actually stuck.**
+
+Classmates handed me lecture recordings asking whether they could be turned into text. A friend was transcribing interviews until 3 a.m. Nobody in my family wanted to listen through meeting recordings and type them out. They cannot install Python or use a command line — handing them the open-source Whisper toolkit is the same as handing them nothing.
+
+I also work with a lot of recorded material myself — online lectures, interviews, meeting recordings. Every existing option had a problem:
 
 - **Web transcription services** charge by the minute, and uploading private content to a third party is a privacy risk.
 - **Built-in transcription in editing apps** locks you into one ecosystem and exports rigid formats.
