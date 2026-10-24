@@ -87,15 +87,12 @@ def main():
     log = applog.get()
 
     # 单实例: 已经有一份在跑就不重复启动, 直接把界面带出来
-    if not args.no_window:
-        lock = acquire_single_instance()
-        if lock is None:
-            if open_existing((root, paths.app_dir())):
-                return
-            print("检测到软件已在运行, 但找不到它的地址; 请检查任务栏窗口。")
+    lock = acquire_single_instance()
+    if lock is None and not args.no_window:
+        if open_existing((root, paths.app_dir())):
             return
-    else:
-        lock = acquire_single_instance()
+        # 端口可能被别的程序占用, 不能因此拒绝启动
+        log.warning("单实例端口 %d 被占用且未找到已有实例, 继续启动", LOCK_PORT)
 
     from backend.server import create_app
     from backend.tasks import Worker
@@ -191,9 +188,21 @@ def main():
                 webbrowser.open(str(folder))
 
         def open_file(self, path):
+            """用系统默认程序打开文件(三平台都支持, 桌面端功能对齐)"""
             target = Path(path)
-            if target.exists() and os.name == "nt":
-                os.startfile(str(target))  # noqa: S606
+            if not target.exists():
+                return
+            try:
+                if os.name == "nt":
+                    os.startfile(str(target))  # noqa: S606
+                elif sys.platform == "darwin":
+                    import subprocess
+                    subprocess.Popen(["open", str(target)])
+                else:
+                    import subprocess
+                    subprocess.Popen(["xdg-open", str(target)])
+            except Exception:
+                pass
 
         def exit_app(self):
             import webview as wv

@@ -19,6 +19,14 @@ class TaskCanceled(Exception):
     """用户取消, 用于打断阶段流程"""
 
 
+def _is_oom(e: Exception) -> bool:
+    """判断是否为显存/内存不足, 用于决定是否回退 CPU 重试"""
+    msg = str(e).lower()
+    keys = ("out of memory", "outofmemory", "cuda error", "cublas",
+            "insufficient memory", "allocation failed", "cudnn")
+    return any(k in msg for k in keys)
+
+
 def _norm_created(v) -> float:
     """历史任务的 created 是字符串("2026-08-22 09:01:00"), 新任务是时间戳, 统一成 float"""
     if isinstance(v, (int, float)):
@@ -152,7 +160,8 @@ class Worker:
         if task.get("cancel"):
             raise TaskCanceled()
 
-    def _progress_cb(self, task):
+    def _progress_cb(self, task, base: float = 0.0, span: float = 1.0):
+        """把子任务 0~1 的进度映射到整体区间的 base ~ base+span, 并节流写盘"""
         last = {"t": 0.0}
 
         def cb(p):
@@ -160,8 +169,27 @@ class Worker:
             now = time.time()
             if now - last["t"] > 0.4 or p >= 1:
                 last["t"] = now
-                self._update(task, progress=p, save=True)
+                self._update(task, progress=base + max(0.0, min(1.0, p)) * span,
+                             save=True)
         return cb
+
+    def _bump(self, task, value: float):
+        """只增不减地推进进度(供心跳使用, 避免与真实回调互相覆盖)"""
+        with self._lock:
+            if value > (task.get("progress") or 0):
+                task["progress"] = round(min(0.99, value), 3)
+                self._save()
+
+    def _heartbeat(self, task, base: float, span: float, est_seconds: float,
+                   stop: threading.Event):
+        """批量推理不会边跑边吐结果, 靠时间估算让进度条动起来"""
+        t0 = time.time()
+        while not stop.wait(1.0):
+            if task.get("cancel"):
+                return
+            elapsed = time.time() - t0
+            frac = min(0.92, elapsed / max(est_seconds, 1.0))
+            self._bump(task, base + span * frac)
 
     # ---------- 执行 ----------
     def start(self):
@@ -217,8 +245,9 @@ class Worker:
         mp3 = out_dir / f"{stem}_音频.mp3"
         meta = {"video": video.name, "mtime": mtime.strftime("%Y-%m-%d %H:%M")}
         hw = engine.detect_hardware()
-        model_name, device, compute = engine.pick_tier(
-            hw, s["transcribe"].get("tier", "auto"))
+        tr = s.get("transcribe", {})
+        model_name, device, compute, batch = engine.pick_tier(
+            hw, tr.get("tier", "auto"), tr.get("device", "auto"))
         seg_cache = self.dirs["text"] / f"{stem}.segments.json"
         cache_key = f"{model_name}({device})"
 
@@ -242,26 +271,64 @@ class Worker:
             self._update(task, stage="转写复用", progress=1.0)
             self.log.info("复用转写缓存: %s", stem)
         else:
-            # 1. 提取音频
+            # 1. 提取音频 (进度 3% ~ 8%)
             self._update(task, stage=STAGES[1], progress=0.03)
             self._check_cancel(task)
+            last_t = {"t": 0.0}
+
+            def extract_cb(p):
+                self._check_cancel(task)
+                now = time.time()
+                if now - last_t["t"] > 0.4 or p >= 1:
+                    last_t["t"] = now
+                    self._update(task, progress=0.03 + p * 0.05, save=True)
+
             duration, _ = engine.extract_audio(
-                video, wav, mp3, should_cancel=lambda: bool(task.get("cancel")))
+                video, wav, mp3,
+                should_cancel=lambda: bool(task.get("cancel")),
+                progress_cb=extract_cb)
             meta["duration"] = duration
             self._check_cancel(task)
 
-            # 2. 转写
+            # 2. 转写 (整体进度 8% ~ 70%)
             self._update(task, stage=STAGES[2], progress=0.08)
-            model = engine.load_model(model_name, device, compute,
-                                      local_dir=self._models_dir())
-            cpu_threads = None
+            cpu_threads = 0
             if device == "cpu":
-                cores = os.cpu_count() or 4
-                cpu_threads = max(2, cores - 2)
-            segments, total = engine.transcribe(
-                wav, model, s["transcribe"].get("language", "zh"),
-                s["transcribe"].get("hotwords", ""), self._progress_cb(task),
-                cpu_threads=cpu_threads)
+                cpu_threads = max(2, (os.cpu_count() or 4) - 2)
+            model = engine.load_model(model_name, device, compute,
+                                      local_dir=self._models_dir(),
+                                      cpu_threads=cpu_threads)
+            cb = self._progress_cb(task, base=0.08, span=0.62)
+            # 批量推理不吐中间结果, 用时间估算驱动进度条;
+            # 估算按 8 倍实时(GPU large-v3 经验值), 真实进度到达时自动接管
+            stop_hb = threading.Event()
+            # GPU large-v3 约 8 倍实时, CPU 约 1.2 倍实时; 估算只是让进度条平滑
+            speed = 8.0 if device == "cuda" else 1.2
+            est = max(8.0, float(meta.get("duration") or 0) / speed)
+            threading.Thread(target=self._heartbeat,
+                             args=(task, 0.08, 0.62, est, stop_hb),
+                             daemon=True).start()
+            try:
+                segments, total = engine.transcribe(
+                    wav, model, tr.get("language", "zh"),
+                    tr.get("hotwords", ""), cb, batch_size=batch)
+            except Exception as e:
+                # 显存不足: 退回 CPU 重跑, 不直接判失败
+                if device == "cuda" and _is_oom(e):
+                    self.log.warning("GPU 显存不足, 回退 CPU: %s", str(e)[:120])
+                    meta["gpu_fallback"] = "显存不足, 已回退 CPU"
+                    device, compute, batch = "cpu", "int8", 0
+                    cpu_threads = max(2, (os.cpu_count() or 4) - 2)
+                    model = engine.load_model(model_name, "cpu", "int8",
+                                              local_dir=self._models_dir(),
+                                              cpu_threads=cpu_threads)
+                    segments, total = engine.transcribe(
+                        wav, model, tr.get("language", "zh"),
+                        tr.get("hotwords", ""), cb, batch_size=0)
+                else:
+                    raise
+            finally:
+                stop_hb.set()
             meta["model"] = cache_key
             meta["duration"] = total
             # 立即落盘: 即使后续步骤失败也不用重跑识别 (meta 必须带 model,

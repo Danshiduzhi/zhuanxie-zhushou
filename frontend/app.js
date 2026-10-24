@@ -365,7 +365,9 @@ function renderAll() {
   // 设置页只在设置真正变化时回填, 且用户正在输入时不打断
   if (currentView === "settings" && !editingSettings()) {
     const sig = JSON.stringify(state.settings);
-    if (sig !== lastSettingsSig) {
+    // 深链直接进设置页时, 首次渲染可能早于状态加载, 这里补一次
+    const notFilled = !$("hwBox").textContent;
+    if (sig !== lastSettingsSig || notFilled) {
       fillSettings();
       lastSettingsSig = sig;
     }
@@ -491,6 +493,7 @@ function fillSettings() {
 
   const tr = s.transcribe || {};
   $("setTier").value = tr.tier || "auto";
+  $("setDevice").value = tr.device || "auto";
   $("setLang").value = tr.language || "zh";
   $("setHotwords").value = tr.hotwords || "";
 
@@ -509,11 +512,15 @@ function fillSettings() {
     : (hw.cores >= 8 && hw.ram_gb >= 16)
       ? "large-v3（CPU）"
       : (hw.ram_gb >= 8 ? "distil-large-v3" : "medium 或 small");
+  const gpuLine = hw.cuda
+    ? `${escapeHtml(hw.gpu_name || "NVIDIA 显卡")}` +
+      (hw.vram_gb ? ` · ${hw.vram_gb} GB 显存` : "")
+    : "无独显";
   $("hwBox").innerHTML =
-    `<b>本机</b>：${hw.cuda ? "NVIDIA 显卡（GPU 转写）" : "无独显（CPU 转写）"}` +
+    `<b>本机</b>：${gpuLine}` +
     ` · ${hw.cores || "?"} 核 · ${hw.ram_gb || "?"} GB 内存<br>` +
     `<b>建议档位</b>：${tierHint}` +
-    (hw.gpu_name ? ` · ${escapeHtml(hw.gpu_name)}` : "");
+    (hw.cuda && hw.vram_gb ? `　<b>显存</b>：${hw.vram_gb} GB` : "");
 }
 
 $("setProvider").addEventListener("change", () => {
@@ -533,6 +540,7 @@ $("saveSettings").addEventListener("click", async () => {
   };
   s.transcribe = {
     tier: $("setTier").value,
+    device: $("setDevice").value,
     language: $("setLang").value,
     hotwords: $("setHotwords").value,
   };

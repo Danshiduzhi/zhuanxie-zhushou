@@ -28,7 +28,9 @@
 
 | 功能 | 说明 |
 |---|---|
-| 本地识别 | 内置 large-v3，GPU/CPU 自动选档，完全离线 |
+| 本地识别 | 内置 large-v3，完全离线 |
+| 显卡加速 | 自动读显存（NVML / nvidia-smi），8 GB 显存跑 large-v3 fp16 + 批量推理，吞吐约 8 倍实时；显存不足自动回退 CPU |
+| 加速方式 | 设置页可选 自动 / 仅 GPU / 仅 CPU |
 | 热词表 | 人名、术语，显著降低专名错字 |
 | 智能校对 | 可选，修正同音错字、补标点、统一术语（需 API Key） |
 | 生成总结 | 可选，摘要 / 要点 / 详解 / 行动项 |
@@ -53,8 +55,29 @@
 python app.py                 # 开发模式启动（原生窗口）
 python app.py --no-window     # 只起服务 http://127.0.0.1:8765
 python app.py --portable      # 绿色模式：数据跟随程序目录
+python app.py --view settings # 启动直接打开指定页
 python pipeline.py all        # 命令行批量处理 01_视频/
 ```
+
+## 测试
+
+```bash
+python tests/test_core.py                      # 纯逻辑，36 项，不需要模型和网络
+python tests/test_e2e.py 音频.wav [长音频.m4a]  # 端到端，11 项
+```
+
+端到端会自建数据目录、起服务、提交任务，校验产物齐全、进度单调、运行中可取消。
+详见 [`tests/README.md`](tests/README.md)。
+
+## 跨平台
+
+| 平台 | 状态 | 说明 |
+|---|---|---|
+| Windows 10/11 | 完整支持 | 一键安装包；CUDA 库随包分发 |
+| Linux | 完整支持 | 数据在 `~/.local/share/转写助手`；CUDA 库走 `LD_LIBRARY_PATH`（pip 安装的 nvidia 包自动识别） |
+| macOS | 完整支持 | 数据在 `~/Library/Application Support/转写助手`；Apple Silicon 走 CPU（CTranslate2 原生 arm64） |
+
+桌面端三平台功能一致：本地模型、热词、AI 校对、总结、存疑试听、四件套输出、断点续跑都没有裁剪。
 
 ## 打包
 

@@ -75,7 +75,8 @@ def default_settings() -> dict:
     return {
         "api": {"provider": "deepseek", "base_url": "https://api.deepseek.com/v1",
                 "api_key": "", "model": "deepseek-chat"},
-        "transcribe": {"tier": "auto", "language": "zh", "hotwords": ""},
+        "transcribe": {"tier": "auto", "language": "zh", "hotwords": "",
+                       "device": "auto"},   # auto | cuda | cpu
         "output": {"keep_source": True,   # 完成后保留源视频与录音
                    "summary": True,       # 生成总结提炼
                    "proofread": True},    # AI 校对

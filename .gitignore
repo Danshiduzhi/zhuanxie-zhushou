@@ -41,3 +41,6 @@ Thumbs.db
 android/build/
 android/debug.keystore
 *.apk
+
+# 测试音频（各机器自备，见 tests/README）
+testdata/

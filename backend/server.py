@@ -27,6 +27,8 @@ APP_VERSION = "2.0"
 
 def create_app(dirs: dict, worker: Worker, token: str) -> Flask:
     app = Flask(__name__, static_folder=str(FRONTEND), static_url_path="/static")
+    # 本机服务: 限制单个上传体积, 避免误拖超大文件把磁盘写满
+    app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024 * 1024
     log = applog.get()
 
     def _allowed_roots():
