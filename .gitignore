@@ -44,3 +44,6 @@ android/debug.keystore
 
 # 测试音频（各机器自备，见 tests/README）
 testdata/
+
+# 其它本地资料
+歌词动画/
